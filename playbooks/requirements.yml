@@ -1,0 +1,10 @@
+---
+- geerlingguy.repo-remi
+- geerlingguy.ntp
+- geerlingguy.firewall
+- geerlingguy.php-versions
+- geerlingguy.php
+- geerlingguy.php-mysql
+- nginxinc.nginx
+- geerlingguy.nodejs
+- geerlingguy.redis

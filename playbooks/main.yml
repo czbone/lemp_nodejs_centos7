@@ -1,0 +1,261 @@
+- hosts: all
+  vars_files:
+    - vars/main.yml
+    - vars/www_{{ ansible_os_family }}.yml
+    
+  vars:
+    ### PHP version ###
+    php_version: '7.4'
+
+    ### MariaDB version ###
+    mariadb_version: '10.5'
+    
+    ### Nodejs version ###
+    nodejs_version: "14.x"
+
+    #######################################
+    # 設定が必要な範囲 --- ここから ---
+    #######################################
+    #######################################
+    # Production site configuration
+    #######################################
+
+    #######################################
+    # Default site configuration
+    #######################################
+    default_server_name: 'sample'           # サーバ名
+    default_site_domain: 'example.com'      # ドメイン名
+    default_site_mailto: 'foo@example.com'  # 管理者メール送信先
+
+    #######################################
+    # Default site database configuration
+    #######################################
+    db_host: 'localhost'
+    db_user: 'root'
+    #mariadb_root_password: 'pass' # Mariadb rootパスワード
+    site_db_name: 'sitedb'
+    site_db_user: 'sitedb_user'
+    site_db_password: 'pass'
+
+    #######################################
+    # SSL configuration(Multiple)
+    #######################################
+    #ssl_site_domains:
+    #  - 'example.com'
+    site_ssl_key: 'server.key'
+    site_ssl_crt: 'server.crt'
+
+    #######################################
+    # 設定が必要な範囲 --- ここまで ---
+    #######################################
+  roles:
+    - role: geerlingguy.repo-remi
+    - geerlingguy.ntp
+    - nginxinc.nginx
+    - geerlingguy.php-versions
+    - geerlingguy.php
+    - geerlingguy.php-mysql
+    - mariadb
+    - geerlingguy.nodejs
+    - geerlingguy.redis
+
+  pre_tasks:
+    ##########################################################
+    # remove preinstalled packages
+    ##########################################################
+    - name: remove preinstalled packages
+      yum:
+        name:
+          - httpd
+          - httpd-tools
+          - php
+          - php-gd
+          - php-pdo
+          - php-xml
+          - php-cli
+          - php-common
+        state: absent
+
+  tasks:
+    ##########################################################
+    # base environment
+    ##########################################################
+    # Install additional command
+    - name: Install additional command for CentOS by yum
+      yum:
+        name:
+          - zip
+          - unzip
+          - wget
+          - mailx
+          - expect
+          - nmap
+          - git
+          - MySQL-python
+
+    # Install compile module for building node-gyp
+    - name: Install compile module for building node-gyp
+      yum:
+        name:
+          - gcc-c++
+
+    - selinux: state=disabled
+      become: True
+
+    ##########################################################
+    # PHP configuration
+    ##########################################################
+    # PHP-FPM configuration
+    - name: update PHP-FPM configuration
+      copy: src="php-fpm_www.conf" dest="/etc/php-fpm.d/www.conf" owner=root group=root mode=0644
+      
+    # fix log directory ownership
+    - file: path=/var/log/php-fpm owner=root group=root mode=0700
+    # fix PHP directory ownership
+    - file: path="/var/lib/php/opcache" owner=nginx group=nginx mode=0770
+    - file: path="/var/lib/php/session" owner=nginx group=nginx mode=0770
+    - file: path="/var/lib/php/wsdlcache" owner=nginx group=nginx mode=0770
+
+    ##########################################################
+    # mariadb configuration
+    ##########################################################
+    - name: make log directory
+      file: path="/var/log/mysql" state=directory owner=mysql group=mysql mode=0755
+    # fix mariadb config file
+    - name: Install server config file
+      template:
+        src: etc_my.cnf.d_server.cnf.j2
+        dest: "{{ mariadb_config_server }}"
+      notify: restart mariadb
+  
+    ##########################################################
+    # nginx configuration
+    ##########################################################
+    # fix directory ownership
+    - file: path=/var/log/nginx owner=root group=root mode=0755
+
+    # fix Nginx log ownership
+    - copy: src="logrotate_nginx" dest="/etc/logrotate.d/nginx" owner=root group=root mode=0644
+    - file: path="/var/log/nginx/access.log" owner=nginx group=nginx mode=0640
+    - file: path="/var/log/nginx/error.log" owner=nginx group=nginx mode=0640
+
+    # modify nginx config file
+    - name: backup nginx.conf
+      shell: mv /etc/nginx/nginx.conf  /etc/nginx/nginx.conf_bak
+    - copy: src="nginx.conf" dest="/etc/nginx/nginx.conf" owner=root group=root mode=0644
+
+    # copy error page file
+    - name: make error page directory
+      file: path="/usr/share/nginx/html/error" state=directory owner=root group=root mode=0755
+    - copy: src="error/forbidden.html" dest="/usr/share/nginx/html/error/forbidden.html" owner=root group=root mode=0644
+    - copy: src="error/internalservererror.html" dest="/usr/share/nginx/html/error/internalservererror.html" owner=root group=root mode=0644
+    - copy: src="error/notfound.html" dest="/usr/share/nginx/html/error/notfound.html" owner=root group=root mode=0644
+    - copy: src="error/unauthorized.html" dest="/usr/share/nginx/html/error/unauthorized.html" owner=root group=root mode=0644
+    - copy: src="error/serviceunavailable.html" dest="/usr/share/nginx/html/error/serviceunavailable.html" owner=root group=root mode=0644
+
+    # configure default SSL site
+    - name: update Nginx default.conf
+      template: src="default.conf_ssl.j2" dest="/etc/nginx/conf.d/default.conf" owner=root group=root mode=0644
+
+    # make multi domain site directory
+    - name: make multi domain site directory
+      file: path=/etc/nginx/sites-available state=directory owner=root group=root mode=0755
+    
+    # SSL configuration
+    - name: make SSL directory
+      file: path=/etc/nginx/ssl state=directory owner=root group=root mode=0755
+    # - name: make SSL domain directory
+    #   file: path=/etc/nginx/ssl/{{ site_domain }} state=directory owner=root group=root mode=0755
+    # - name: copy SSL key file
+    #   copy: src=files/ssl/{{ site_domain }}/{{ site_ssl_key }} dest=/etc/nginx/ssl/{{ site_domain }} owner=root group=root mode=0644
+    # - name: copy SSL CRT file
+    #   copy: src=files/ssl/{{ site_domain }}/{{ site_ssl_crt }} dest=/etc/nginx/ssl/{{ site_domain }} owner=root group=root mode=0644
+    # - name: make SSL domain directory(fot test)
+    #   file: path=/etc/nginx/ssl/{{ test_site_domain }} state=directory owner=root group=root mode=0755
+    # - name: copy SSL key file(fot test)
+    #   copy: src=files/ssl/{{ test_site_domain }}/{{ site_ssl_key }} dest=/etc/nginx/ssl/{{ test_site_domain }} owner=root group=root mode=0644
+    # - name: copy SSL CRT file(fot test)
+    #   copy: src=files/ssl/{{ test_site_domain }}/{{ site_ssl_crt }} dest=/etc/nginx/ssl/{{ test_site_domain }} owner=root group=root mode=0644
+
+    # optional SSL configuration
+    - name: make SSL domain directory(optional)
+      file: path=/etc/nginx/ssl/{{ item }} state=directory owner=root group=root mode=0755
+      with_items: '{{ ssl_site_domains | default([]) }}'
+    - name: copy SSL key file(optional)
+      copy: src=files/ssl/{{ item }}/{{ site_ssl_key }} dest=/etc/nginx/ssl/{{ item }} owner=root group=root mode=0644
+      with_items: '{{ ssl_site_domains | default([]) }}'
+    - name: copy SSL CRT file(optional)
+      copy: src=files/ssl/{{ item }}/{{ site_ssl_crt }} dest=/etc/nginx/ssl/{{ item }} owner=root group=root mode=0644
+      with_items: '{{ ssl_site_domains | default([]) }}'
+
+    ##########################################################
+    # nodejs configuration
+    ##########################################################
+    # make default Nodejs application directory
+    - name: make Nodejs application directory
+      file: path=/var/www/node-app state=directory owner=root group=root mode=0755
+
+    ##########################################################
+    # firewall configuration
+    ##########################################################
+    # firewall configuration
+    - firewalld: service=http permanent=true state=enabled
+    - firewalld: service=https permanent=true state=enabled
+    - name: restart firewalld
+      service: name=firewalld state=restarted enabled=yes
+
+    ##########################################################
+    # root tools
+    ##########################################################
+
+    ##########################################################
+    # user environment
+    ##########################################################
+    # add root shell environment
+    - copy: src="root_bash_profile" dest="/root/.bash_profile" owner=root group=root mode=0644
+
+    ##########################################################
+    # create sample database
+    ##########################################################
+    # upload sql script file
+#    - name: upload sql script file
+#      copy: src=files/{{ site_sql_file }} dest=/tmp
+
+    # create sample user and database
+    - name: create default database user
+      mysql_user:
+        host: '{{ db_host }}'
+        name: "{{ site_db_user }}"
+        password: "{{ site_db_password }}"
+        priv: "{{ site_db_name }}.*:ALL,GRANT"
+        login_host: "{{ db_host }}"
+        login_user: "{{ db_user }}"
+        login_password: "{{ mariadb_root_password }}"
+        state: present
+    - name: create default database
+      mysql_db:
+        name: "{{ site_db_name }}"
+        login_host: "{{ db_host }}"
+        login_user: "{{ site_db_user }}"
+        login_password: "{{ site_db_password }}"
+        state: present
+    ##########################################################
+    # PHP sample script
+    ##########################################################
+    # add php test scripts in default site
+    - name: make www directory
+      file: path="/var/www/html/www" state=directory owner=nginx group=nginx mode=0775
+    - template: src="php_index.j2" dest="/var/www/html/www/index.php"
+    - template: src="php_index2.j2" dest="/var/www/html/www/index2.php"
+    
+    ##########################################################
+    # TESTING ONLY ENVIRONMENT(REMOVE IT AT PRODUCTION)
+    ##########################################################
+    - name: stop firewall
+      shell: systemctl stop firewalld
+    - name: disable firewall
+      shell: systemctl disable firewalld
+    - name: release local network limitation
+      shell: mv /etc/my.cnf.d/network.cnf  /etc/my.cnf.d/network.cnf_bak
+      notify: restart mariadb
+
