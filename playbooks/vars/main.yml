@@ -41,6 +41,7 @@ php_packages:
   - php-pecl-zendopcache
   - php-pecl-apcu
   - php-intl
+  - php-redis
 
 #
 # Nginx configuration
