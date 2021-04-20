@@ -116,10 +116,10 @@
     - file: path="/var/lib/php/session" owner=nginx group=nginx mode=0770
     - file: path="/var/lib/php/wsdlcache" owner=nginx group=nginx mode=0770
 
-    # Redis Session configuration
-    - name: update php-redis module configuration
-      copy: src="50-redis.ini" dest="/etc/php.d/50-redis.ini" owner=root group=root mode=0644
-      
+    # Session for Redis configuration
+    #- name: update php-redis module configuration
+    #  copy: src="50-redis.ini" dest="/etc/php.d/50-redis.ini" owner=root group=root mode=0644
+
     ##########################################################
     # mariadb configuration
     ##########################################################

@@ -42,6 +42,7 @@ php_packages:
   - php-pecl-apcu
   - php-intl
   - php-redis
+  - php-pecl-redis5
 
 #
 # Nginx configuration
