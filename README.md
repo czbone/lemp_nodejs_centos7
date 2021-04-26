@@ -1,19 +1,19 @@
 # 構築環境
-LEMP(Linux,Nginx,MySQL,PHP)にNodejsを追加した環境をローカルネットワークに構築します。
+LEMP(Linux,Nginx,MySQL,PHP)にNodejsを追加した環境をプライベートネットワークに構築します。
 WebのルートはNodejsをホスティングし、サブディレクトリでPHPも動作します。
 
-# ベースOS
+## ベースOS
 - CenOS7
 
-# エンドポイント
+## Webサービスエンドポイント
 
 + /
 
-Nodejsサービスをホスティングします。
+Nodejsをホスティングします。
 
 + /www
 
-PHPサービスをホスティングします。
+PHPをホスティングします。
 
 ## 実行方法
 vagrantコマンドで環境を起動します。
