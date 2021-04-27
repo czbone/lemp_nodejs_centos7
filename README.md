@@ -22,7 +22,7 @@ vagrantコマンドで環境を起動します。
 > vagrant up
 ```
 
-## 設定
+## 初期設定
 rootパスワードを設定します。
 
 ```
@@ -30,3 +30,10 @@ rootパスワードを設定します。
 $ sudo su -
 $ passwd
 ```
+
+## サンプルプログラム
+
+
+サンプルプログラムをダウンロードし配置します。
+
+https://github.com/czbone/nodejs_php_sample1
