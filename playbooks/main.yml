@@ -14,6 +14,12 @@
     nodejs_version: "14.x"
 
     #######################################
+    # テストサーバ用の設定
+    #######################################
+    security_ssh_password_authentication: "yes"
+    security_ssh_permit_root_login: "yes"
+
+    #######################################
     # 設定が必要な範囲 --- ここから ---
     #######################################
     #######################################
@@ -49,7 +55,7 @@
     # 設定が必要な範囲 --- ここまで ---
     #######################################
   roles:
-    - role: geerlingguy.repo-remi
+    - geerlingguy.repo-remi
     - geerlingguy.ntp
     - nginxinc.nginx
     - geerlingguy.php-versions
@@ -58,6 +64,7 @@
     - mariadb
     - geerlingguy.nodejs
     - geerlingguy.redis
+    - geerlingguy.security
 
   pre_tasks:
     ##########################################################
