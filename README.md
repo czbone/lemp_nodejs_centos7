@@ -23,7 +23,7 @@ vagrantコマンドで環境を起動します。
 ```
 
 ## 初期設定
-rootパスワードを設定します。
+環境構築後、rootパスワードを設定します。
 
 ```
 > vagrant ssh
@@ -36,4 +36,4 @@ $ passwd
 
 サンプルプログラムをダウンロードし配置します。
 
-https://github.com/czbone/nodejs_php_sample1
+- https://github.com/czbone/nodejs_php_sample1
