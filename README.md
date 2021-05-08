@@ -46,7 +46,15 @@ $ passwd
 
 ## サンプルプログラム
 
-
 サンプルプログラムをダウンロードし配置します。
 
 - https://github.com/czbone/nodejs_php_sample1
+
+
+## カスタマイズ
+
+デフォルトではプライベートIPの192.168.33.10で起動しますが、Vagrantfileの以下の部分を変更することで任意のIPのサーバとして起動できます。
+
+```
+config.vm.network "private_network", ip: "192.168.33.10"
+```
