@@ -1,5 +1,5 @@
 # 環境構築プロジェクト
-LEMP(Linux,Nginx,MySQL,PHP)にNodejsを追加した環境をプライベートネットワークに構築します。
+LEMP(Linux,Nginx,MariaDB,PHP)にNodejsを追加した環境をプライベートネットワークに構築します。
 WebのルートはNodejsをホスティングし、サブディレクトリでPHPも動作します。
 
 ## 構築する環境
